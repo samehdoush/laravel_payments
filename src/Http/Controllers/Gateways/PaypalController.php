@@ -23,7 +23,7 @@ class PaypalController extends BaseController
 {
 
 
- 
+
     /**
      * Reads GatewayProducts table and returns price id of the given plan
      */
@@ -326,8 +326,8 @@ class PaypalController extends BaseController
                 $request_id = 'create-product-' . time();
 
                 $newProduct = $provider->createProduct($data, $request_id);
-
-                $product = new config('payments.models.gateway_products')();
+                $model = config('payments.models.gateway_products');
+                $product = new $model;
                 $product->plan_id = $planId;
                 $product->plan_name = $productName;
                 $product->gateway_code = "paypal";
