@@ -5,10 +5,9 @@ namespace App\Http\Controllers\Gateways;
 use Illuminate\Routing\Controller as BaseController;
 
 
-use App\Models\GatewayProducts;
+
 use App\Models\Gateways;
-use App\Models\OldGatewayProducts;
-use App\Models\PaymentPlans;
+
 use App\Models\Setting;
 use App\Models\Subscriptions as SubscriptionsModel;
 use App\Models\SubscriptionItems;
@@ -16,15 +15,11 @@ use App\Models\SubscriptionItems;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Session;
-use Carbon\Carbon;
 
 use Srmklive\PayPal\Services\PayPal as PayPalClient;
 
 use App\Events\PaypalWebhookEvent;
+
 
 /**
  * Controls ALL Payment actions of PayPal
@@ -32,14 +27,14 @@ use App\Events\PaypalWebhookEvent;
 class PaypalController extends BaseController
 {
 
-    public static $planModel = null;
+
     public static $gatewayProducts = null;
     public static $oldGatewayProducts = null;
     public function __construct()
     {
-        self::$planModel = config('subscriptions.models.plan');
-        self::$gatewayProducts = config('subscriptions.models.gateway_products');
-        self::$oldGatewayProducts = config('subscriptions.models.old_gateway_products');
+
+        self::$gatewayProducts = config('payments.models.gateway_products');
+        self::$oldGatewayProducts = config('payments.models.old_gateway_products');
     }
     /**
      * Reads GatewayProducts table and returns price id of the given plan
@@ -48,8 +43,8 @@ class PaypalController extends BaseController
     {
 
         //check if plan exists
-        $plan = self::$planModel::where('id', $planId)->first();
-        if ($plan != null) {
+
+        if (!is_null($planId)) {
             $product = self::$gatewayProducts::where(["plan_id" => $planId, "gateway_code" => "paypal"])->first();
             if ($product != null) {
                 return $product->price_id;
@@ -67,8 +62,8 @@ class PaypalController extends BaseController
     {
 
         //check if plan exists
-        $plan = self::$planModel::where('id', $planId)->first();
-        if ($plan != null) {
+
+        if (!is_null($planId)) {
             $product = self::$gatewayProducts::where(["plan_id" => $planId, "gateway_code" => "paypal"])->first();
             if ($product != null) {
                 return $product->product_id;
@@ -82,21 +77,21 @@ class PaypalController extends BaseController
     /**
      * Returns provider of Paypal
      */
-    public static function getPaypalProvider()
+    public static function getPaypalProvider(): PayPalClient
     {
 
 
-        if (!config('subscriptions.paypal.enable')) {
+        if (!config('payments.paypal.enable')) {
             abort(404);
         }
-        $currency = config('subscriptions.paypal.currency');
+        $currency = config('payments.paypal.currency');
         $site_url = config('app.url');
 
-        $client_id = config('subscriptions.paypal.client_id');
-        $client_secret = config('subscriptions.paypal.client_secret');
-        $app_id = config('subscriptions.paypal.app_id');
+        $client_id = config('payments.paypal.client_id');
+        $client_secret = config('payments.paypal.client_secret');
+        $app_id = config('payments.paypal.app_id');
         $config = [
-            'mode'    =>  config('subscriptions.paypal.mode', 'sandbox'),
+            'mode'    =>  config('payments.paypal.mode', 'sandbox'),
             'sandbox' => [
                 'client_id'         => $client_id,
                 'client_secret'     => $client_secret,
@@ -111,7 +106,7 @@ class PaypalController extends BaseController
             'currency'       => $currency,
             'notify_url'     => $site_url . '/paypal/notify',
             'locale'         => $currency,
-            'validate_ssl'   => config('subscriptions.paypal.mode', 'sandbox')  == 'sandbox' ? false : true,
+            'validate_ssl'   => config('payments.paypal.mode', 'sandbox')  == 'sandbox' ? false : true,
         ];
 
 
@@ -124,7 +119,7 @@ class PaypalController extends BaseController
     }
 
 
-    public static function deactivateOtherPlans($provider, $productName)
+    public static function deactivateOtherPlans(PayPalClient $provider, $productName)
     {
 
         $plans = $provider->listPlans();
@@ -141,8 +136,16 @@ class PaypalController extends BaseController
         return true;
     }
 
-
-    public static function createBillingPlanData($productId, $productName, $trials, $currency, $interval, $price)
+    /**
+     * Create Billing plan in Paypal
+     * @param $productId Product ID of the plan
+     * @param $productName Name of the plan
+     * @param $trials Number of trials
+     * @param $currency Currency of the plan
+     * @param $interval Interval of the plan
+     * @param $price Price of the plan
+     */
+    public static function createBillingPlanData($productId, $productName, $trials, $currency, $interval = 'MONTH', $interval_count = 1, $price)
     {
 
         if ($trials == 0) {
@@ -157,7 +160,7 @@ class PaypalController extends BaseController
                         "frequency" =>
                         [
                             "interval_unit"     => $interval,
-                            "interval_count"    => 1
+                            "interval_count"    => $interval_count
                         ],
                         "tenure_type"       => "REGULAR",
                         "sequence"          => 1,
@@ -214,7 +217,7 @@ class PaypalController extends BaseController
                         "frequency" =>
                         [
                             "interval_unit"     => $interval,
-                            "interval_count"    => 1
+                            "interval_count"    => $interval_count
                         ],
                         "tenure_type"       => "REGULAR",
                         "sequence"          => 2,
@@ -258,41 +261,37 @@ class PaypalController extends BaseController
      * @param planId ID of plan in PaymentPlans model.
      * @param productName Name of the product, plain text
      * @param price Price of product
-     * @param frequency Time interval of subscription, month / annual
-     * @param type Type of product subscription/one-time
+     * @param frequency Time interval of subscription, MONTH / YEAR
+     * @param type Type of product subscription/one-time  {o for one-time, s for subscription}
+     * @param incomingProvider Paypal provider object
+     * @param trials Number of trials
      */
-    public static function saveProduct($planId, $productName, $price, $frequency, $type, $incomingProvider = null)
+    public static function saveProduct($planId, $productName, $price, $frequency = "MONTH", $type, PayPalClient $incomingProvider = null, $interval_count = 1, $trials = 0)
     {
 
         try {
 
 
-            if (!config('subscriptions.paypal.enable')) {
+            if (!config('payments.paypal.enable')) {
                 return abort(404);
             }
-            $currency = config('subscriptions.paypal.currency');
+            $currency = config('payments.paypal.currency');
 
 
             $provider = $incomingProvider ?? self::getPaypalProvider();
 
-            $plan = self::$planModel::where('id', $planId)->first();
+
 
             $product = null;
 
-            // if($gateway->mode == 'sandbox'){
-            //     if(env('APP_ENV') != 'development'){
-            //         return back()->with(['message' => 'Paypal Save cancelled! Please set mode to development!', 'type' => 'error']);
-            //     }
-            // }
+
 
             $oldProductId = null;
 
             //check if product exists
             $productData = self::$gatewayProducts::where(["plan_id" => $planId, "gateway_code" => "paypal"])->first();
-            if ($productData != null) {
-
+            if (!is_null($productData)) {
                 // Create product in every situation. maybe user updated paypal credentials.
-
                 if ($productData->product_id != null) { // && $productName != null
                     //Product has been created before
                     $oldProductId = $productData->product_id;
@@ -300,18 +299,27 @@ class PaypalController extends BaseController
                     //Product has NOT been created before but record exists. Create new product and update record.
                 }
 
-                $data = [
-                    "name"          => $productName,
-                    "description"   => $productName,
-                    "type"          => "SERVICE",
-                    "category"      => "SOFTWARE"
-                ];
+
+
+                $data =   json_decode('[
+                    {
+                      "op": "replace",
+                      "path": "/description",
+                      "value": ' . $productName . '
+                    },
+                    {
+                      "op": "replace",
+                      "path": "/name",
+                      "value": ' . $productName . '
+                    }
+                  
+                  ]', true);
 
                 $request_id = 'create-product-' . time();
 
-                $newProduct = $provider->createProduct($data, $request_id);
+                $newProduct = $provider->updateProduct($productData->product_id, $data);
 
-                $productData->product_id = $newProduct['id'];
+                // $productData->product_id = $newProduct['id'];
                 $productData->plan_name = $productName;
                 $productData->save();
 
@@ -323,7 +331,8 @@ class PaypalController extends BaseController
                     "name"          => $productName,
                     "description"   => $productName,
                     "type"          => "SERVICE",
-                    "category"      => "SOFTWARE"
+                    "category"      => "SOFTWARE",
+                    "home_url" => config('app.url'),
                 ];
 
                 $request_id = 'create-product-' . time();
@@ -340,7 +349,7 @@ class PaypalController extends BaseController
             }
 
             //check if price exists
-            if ($product->price_id != null) {
+            if (!is_null($product->price_id)) {
                 //Price exists - here price_id is plan_id in PayPal ( Billing plans id )
 
                 // One-Time price
@@ -351,22 +360,13 @@ class PaypalController extends BaseController
                     $product->save();
                 } else {
                     // Subscription
-
-
                     // Deactivate old billing plan --> Moved to updateUserData()
                     $oldBillingPlanId = $product->price_id;
                     // $oldBillingPlan = $provider->deactivatePlan($oldBillingPlanId);
-
                     // create new billing plan with new values
-                    $interval = $frequency == "m" ? 'MONTH' : 'YEAR';
+                    $interval = $frequency;
 
-                    if ($plan->trial_days != "undefined") {
-                        $trials = $plan->trial_days ?? 0;
-                    } else {
-                        $trials = 0;
-                    }
-
-                    $planData = self::createBillingPlanData($product->product_id, $productName, $trials, $currency, $interval, $price);
+                    $planData = self::createBillingPlanData($product->product_id, $productName, $trials, $currency, $interval, $interval_count, $price);
 
                     // This line is not in docs. but required in execution. Needed ~5 hours to fix.
                     $request_id = 'create-plan-' . time();
@@ -408,19 +408,24 @@ class PaypalController extends BaseController
                     // to subscribe, first create billing plan. then subscribe with it. so price_id is billing_plan_id
                     // subscribe has different id and logic in paypal
 
-                    $interval = $frequency == "m" ? 'MONTH' : 'YEAR';
+                    $interval = $frequency;
 
-                    $trials = $plan->trial_days ?? 0;
+                    $pricing = json_decode('{
+                        "pricing_schemes": [
+                          {
+                            "billing_cycle_sequence": 2,
+                            "pricing_scheme": {
+                              "fixed_price": {
+                                "value": ' . $price . ',
+                                "currency_code": ' . $currency . '
+                              }
+                            }
+                          }
+                        ]
+                      }', true);
 
-                    $planData = self::createBillingPlanData($product->product_id, $productName, $trials, $currency, $interval, $price);
 
-                    // This line is not in docs. but required in execution. Needed ~5 hours to fix.
-                    $request_id = 'create-plan-' . time();
-
-                    $billingPlan = $provider->createPlan($planData, $request_id);
-
-                    $product->price_id = $billingPlan['id'];
-                    $product->save();
+                    $plan = $provider->updatePlanPricing($product->product_id, $pricing);
                 }
             }
         } catch (\Exception $ex) {
@@ -434,12 +439,12 @@ class PaypalController extends BaseController
     /**
      * Used to generate new product id and price id of all saved membership plans in paypal gateway.
      */
-    public static function saveAllProducts()
+    public static function saveAllProducts($plans)
     {
         try {
 
 
-            if (!config('subscriptions.paypal.enable')) {
+            if (!config('payments.paypal.enable')) {
                 return back()->with(['message' => __('Please enable PayPal'), 'type' => 'error']);
                 abort(404);
             }
@@ -447,15 +452,12 @@ class PaypalController extends BaseController
             // Get all membership plans
 
             $provider = self::getPaypalProvider();
-
-            $plans = self::$planModel::where('active', 1)->get();
-
             foreach ($plans as $plan) {
                 // Replaced definitions here. Because if monthly or prepaid words change just updating here will be enough.
-                $freq = $plan->frequency == "monthly" ? "m" : "y"; // m => month | y => year
-                $typ = $plan->type == "prepaid" ? "o" : "s"; // o => one-time | s => subscription
-
-                self::saveProduct($plan->id, $plan->name, $plan->price, $freq, $typ, $provider);
+                $freq = $plan->invoice_interval == "monthly" || $plan->invoice_interval ==  'month' ? 'MONTH' : 'YEAR'; // m => month | y => year
+                // $typ = $plan->type == "prepaid" ? "o" : "s"; // o => one-time | s => subscription
+                $typ = "s"; // o => one-time | s => subscription
+                self::saveProduct($plan->id, $plan->name, $plan->price, $freq, $typ, $provider, $plan->invoice_period, $plan->trial_period);
             }
 
             // Create webhook of paypal
@@ -474,11 +476,11 @@ class PaypalController extends BaseController
     {
 
 
-        if (!config('subscriptions.paypal.enable')) {
+        if (!config('payments.paypal.enable')) {
             abort(404);
         }
 
-        $currency = config('subscriptions.paypal.currency');
+        $currency = config('payments.paypal.currency');
 
         $provider = self::getPaypalProvider();
 
@@ -498,13 +500,8 @@ class PaypalController extends BaseController
 
 
 
-    public function createPayPalOrder(Request $request)
+    static  public function createPayPalOrder($price)
     {
-
-        $plan = self::$planModel::where('id', $request->plan_id)->first();
-        $user = Auth::user();
-
-        $settings = Setting::first();
 
         $provider = self::getPaypalProvider();
 
@@ -515,30 +512,14 @@ class PaypalController extends BaseController
                 [
                     "amount" =>
                     [
-                        "currency_code" => $request->currency,
-                        "value" => strval($plan->price)
+                        "currency_code" => config('payments.paypal.currency'),
+                        "value" => strval($price)
                     ]
                 ]
             ]
         ];
 
         $order = $provider->createOrder($data);
-
-        $orderId = $order['id'];
-
-        $payment = new UserOrder();
-        $payment->order_id = $orderId;
-        $payment->plan_id = $plan->id;
-        $payment->type = 'prepaid';
-        $payment->user_id = $user->id;
-        $payment->payment_type = 'PayPal';
-        $payment->price = $plan->price;
-        $payment->affiliate_earnings = 0;
-        $payment->status = 'Waiting';
-        $payment->country = $user->country ?? 'Unknown';
-        $payment->save();
-
-
         return $order;
     }
 
@@ -552,23 +533,27 @@ class PaypalController extends BaseController
             $provider = self::getPaypalProvider();
 
             $order = $provider->capturePaymentOrder($orderId);
-
-            $payment = UserOrder::where('order_id', $orderId)->first();
+            $model = config('payments.model.order');
+            $payment = $model::where('order_id', $orderId)->first();
 
             if ($payment != null) {
 
                 $payment->status = 'Success';
                 $payment->save();
+                try {
+                    if ($payment->orderable && config('payments.models.plan')) {
+                        $plan = config('payments.models.plan')::find($payment->plan_id);
+                        if ($sup =  $payment->orderable->planSubscription('main')) {
+                            $sup->changePlan($plan);
+                        } else {
+                            $payment->orderable->newPlanSubscriptionWithOutTrail('main', $plan);
+                        }
+                    }
+                } catch (\Throwable $th) {
+                    //throw $th;
+                }
 
-                $plan = self::$planModel::where('id', $payment->plan_id)->first();
-
-                $user = Auth::user();
-
-                $user->remaining_words += $plan->total_words;
-                $user->remaining_images += $plan->total_images;
-                $user->save();
-
-                createActivity($user->id, 'Purchased', $plan->name . ' Token Pack', null);
+                // createActivity($user->id, 'Purchased', $plan->name . ' Token Pack', null);
             } else {
                 error_log("PaypalController::capturePayPalOrder(): Could not find required payment order!");
             }
@@ -585,18 +570,15 @@ class PaypalController extends BaseController
     /**
      * Displays Payment Page of Stripe gateway.
      */
-    public static function subscribe($planId, $plan, $incomingException = null)
+    public static function subscribe($planId, $plan, $user, $incomingException = null)
     {
 
-        // $provider = self::getPaypalProvider();
-        $gateway = Gateways::where("code", "paypal")->first();
-        if ($gateway == null) {
+        if (!config('payments.paypal.enable')) {
             abort(404);
         }
 
-        $settings = Setting::first();
 
-        $user = Auth::user();
+
 
         $subscriptionId = null;
         $exception = $incomingException;
@@ -615,27 +597,38 @@ class PaypalController extends BaseController
 
 
             if ($exception == null) {
-                $payment = new UserOrder();
-                $payment->order_id = $orderId;
-                $payment->plan_id = $planId;
-                $payment->user_id = $user->id;
-                $payment->payment_type = 'PayPal';
-                $payment->price = $plan->price;
-                $payment->affiliate_earnings = ($plan->price * $settings->affiliate_commission_percentage) / 100;
-                $payment->status = 'Waiting';
-                $payment->country = $user->country ?? 'Unknown';
-                $payment->save();
+                $payment = config('payments.model.order');
+                $payment::create([
+                    'order_id' => $orderId,
+                    'plan_id' => $planId,
+                    'user_id' => $user->id,
+                    'payment_type' => 'PayPal',
+                    'price' => $plan->price,
+                    'affiliate_earnings' => ($plan->price * config('payments.affiliate_commission_percentage')) / 100,
+                    'status' => 'Waiting',
+                    'country' => $user->country ?? 'Unknown'
+
+                ]);
             }
         } catch (\Exception $th) {
             $exception = Str::before($th->getMessage(), ':');
         }
+        return [
+            'plan' => $plan,
+            'billingPlanId' => $billingPlanId,
+            'exception' => $exception,
+            'orderId' => $orderId,
+            'productId' => $productId,
+            'gateway' => 'PayPal',
+            'planId' => $planId
+        ];
 
-        return view('panel.user.payment.subscription.payWithPaypal', compact('plan', 'billingPlanId', 'exception', 'orderId', 'productId', 'gateway', 'planId'));
+        // return view('panel.user.payment.subscription.payWithPaypal', compact('plan', 'billingPlanId', 'exception', 'orderId', 'productId', 'gateway', 'planId'));
     }
 
 
 
-    public function approvePaypalSubscription(Request $request)
+    public static function approvePaypalSubscription(Request $request)
     {
 
         try {
@@ -651,44 +644,32 @@ class PaypalController extends BaseController
 
             $productId = self::getPaypalProductId($planId);
 
-            $plan = self::$planModel::where('id', $planId)->first();
+            $plan = config('payments.models.plan')::find($planId);
+            $payment = config('payments.model.order')::where('order_id', $orderId)->first();
+            $payment->stripe_id = $paypalSubscriptionID;
+            $payment->stripe_price = $billingPlanId;
 
-            $payment = UserOrder::where('order_id', $orderId)->first();
-
-            $user = Auth::user();
+            $user = $payment->orderable;
 
             if ($payment != null) {
+                if ($user && config('payments.models.plan')) {
+                    $plan = config('payments.models.plan')::find($payment->plan_id);
+                    if ($sup =  $user->planSubscription('main')) {
+                        $sup->changePlan($plan);
+                    } else {
+                        $user->newPlanSubscriptionWithOutTrail('main', $plan);
+                    }
+                }
 
-                $subscription = new SubscriptionsModel();
-                $subscription->user_id = $user->id;
-                $subscription->name = $planId;
-                $subscription->stripe_id = $paypalSubscriptionID;
-                $subscription->stripe_status = 'active';
-                $subscription->stripe_price = $billingPlanId;
-                $subscription->quantity = 1;
-                $subscription->plan_id = $planId;
-                $subscription->paid_with = 'paypal';
-                $subscription->save();
+                $payment->stripe_status = 'Success';
 
-
-                $subscriptionItem = new SubscriptionItems();
-                $subscriptionItem->subscription_id = $subscription->id;
-                $subscriptionItem->stripe_id = $orderId;
-                $subscriptionItem->stripe_product = $productId;
-                $subscriptionItem->stripe_price = $billingPlanId;
-                $subscriptionItem->quantity = 1;
-                $subscriptionItem->save();
-
-
-                // $payment = UserOrder::where('order_id', $orderId)->first();
-                $payment->status = 'Success';
                 $payment->save();
 
-                $user->remaining_words += $plan->total_words;
-                $user->remaining_images += $plan->total_images;
-                $user->save();
+                // $user->remaining_words += $plan->total_words;
+                // $user->remaining_images += $plan->total_images;
+                // $user->save();
 
-                createActivity($user->id, 'Subscribed', $plan->name . ' Plan', null);
+                // createActivity($user->id, 'Subscribed', $plan->name . ' Plan', null);
 
                 return ["result" => "OK"];
 
@@ -712,137 +693,112 @@ class PaypalController extends BaseController
     /**
      * Cancels current subscription plan
      */
-    public static function subscribeCancel()
+    public static function subscribeCancel($order)
     {
 
-        $user = Auth::user();
+
 
         $provider = self::getPaypalProvider();
 
-        $userId = $user->id;
-        // Get current active subscription
-        $activeSub = SubscriptionsModel::where([['stripe_status', '=', 'active'], ['user_id', '=', $userId]])->orWhere([['stripe_status', '=', 'trialing'], ['user_id', '=', $userId]])->first();
-
-        if ($activeSub != null) {
-            $plan = self::$planModel::where('id', $activeSub->plan_id)->first();
-
-            $response = $provider->cancelSubscription($activeSub->stripe_id, 'Not satisfied with the service');
-
-            if ($response == "") {
-                $activeSub->stripe_status = "cancelled";
-                $activeSub->ends_at = \Carbon\Carbon::now();
-                $activeSub->save();
-
-                $recent_words = $user->remaining_words - $plan->total_words;
-                $recent_images = $user->remaining_images - $plan->total_images;
 
 
-                $user->remaining_words = $recent_words < 0 ? 0 : $recent_words;
-                $user->remaining_images = $recent_images < 0 ? 0 : $recent_images;
-                $user->save();
 
-                createActivity($user->id, 'Cancelled', 'Subscription plan', null);
+        $response = $provider->cancelSubscription($order->stripe_id, 'Not satisfied with the service');
 
-                return back()->with(['message' => 'Your subscription is cancelled succesfully.', 'type' => 'success']);
-            } else {
-                return back()->with(['message' => 'Your subscription could not cancelled.', 'type' => 'error']);
-            }
+        if ($response == "") {
+            $order->stripe_status = "cancelled";
+            $order->ends_at = \Carbon\Carbon::now();
+            $order->save();
+            // createActivity($user->id, 'Cancelled', 'Subscription plan', null);
+            return ['message' => 'Your subscription is cancelled succesfully.', 'type' => 'success'];
+        } else {
+            return ['message' => 'Your subscription could not cancelled.', 'type' => 'error'];
         }
 
-        return back()->with(['message' => 'Could not find active subscription. Nothing changed!', 'type' => 'error']);
+
+        return ['message' => 'Could not find active subscription. Nothing changed!', 'type' => 'error'];
     }
 
 
 
-    public static function getSubscriptionDaysLeft()
+    public static function getSubscriptionDaysLeft($order)
     {
         $provider = self::getPaypalProvider();
-        $userId = Auth::user()->id;
-        // Get current active subscription
-        $activeSub = SubscriptionsModel::where([['stripe_status', '=', 'active'], ['user_id', '=', $userId]])->orWhere([['stripe_status', '=', 'trialing'], ['user_id', '=', $userId]])->first();
-        if ($activeSub != null) {
-            $subscription = $provider->showSubscriptionDetails($activeSub->stripe_id);
-            if (!isset($subscription['error'])) {
-                //if user is in trial
-                if (isset($subscription['billing_info']['cycle_executions'][0]['tenure_type'])) {
-                    if ($subscription['billing_info']['cycle_executions'][0]['tenure_type'] == 'TRIAL') {
-                        return $subscription['billing_info']['cycle_executions'][0]['cycles_remaining'];
+
+
+        $subscription = $provider->showSubscriptionDetails($order->stripe_id);
+        if (!isset($subscription['error'])) {
+            //if user is in trial
+            if (isset($subscription['billing_info']['cycle_executions'][0]['tenure_type'])) {
+                if ($subscription['billing_info']['cycle_executions'][0]['tenure_type'] == 'TRIAL') {
+                    return $subscription['billing_info']['cycle_executions'][0]['cycles_remaining'];
+                } else {
+                    if (isset($subscription['billing_info']['next_billing_time'])) {
+                        return \Carbon\Carbon::now()->diffInDays(\Carbon\Carbon::parse($subscription['billing_info']['next_billing_time']));
                     } else {
-                        if (isset($subscription['billing_info']['next_billing_time'])) {
-                            return \Carbon\Carbon::now()->diffInDays(\Carbon\Carbon::parse($subscription['billing_info']['next_billing_time']));
-                        } else {
-                            $activeSub->stripe_status = "cancelled";
-                            $activeSub->ends_at = \Carbon\Carbon::now();
-                            $activeSub->save();
-                            return \Carbon\Carbon::now()->format('F jS, Y');
-                        }
+                        $order->stripe_status = "cancelled";
+                        $order->ends_at = \Carbon\Carbon::now();
+                        $order->save();
+                        return \Carbon\Carbon::now()->format('F jS, Y');
                     }
                 }
-            } else {
-                error_log("PaypalController::getSubscriptionStatus() :\n" . json_encode($subscription));
             }
+        } else {
+            error_log("PaypalController::getSubscriptionStatus() :\n" . json_encode($subscription));
         }
+
         return null;
     }
 
-    public static function checkIfTrial()
+    public static function checkIfTrial($order)
     {
         $provider = self::getPaypalProvider();
-        $userId = Auth::user()->id;
+
         // Get current active subscription
-        $activeSub = SubscriptionsModel::where([['stripe_status', '=', 'active'], ['user_id', '=', $userId]])->orWhere([['stripe_status', '=', 'trialing'], ['user_id', '=', $userId]])->first();
-        if ($activeSub != null) {
-            $subscription = $provider->showSubscriptionDetails($activeSub->stripe_id);
-            if (isset($subscription['error'])) {
-                error_log("PaypalController::getSubscriptionStatus() :\n" . json_encode($subscription));
-                return back()->with(['message' => 'PayPal Gateway : ' . $subscription['error']['message'], 'type' => 'error']);
-            }
-            if (isset($subscription['billing_info']['cycle_executions'][0]['tenure_type'])) {
-                if ($subscription['billing_info']['cycle_executions'][0]['tenure_type'] == 'TRIAL') {
-                    return true;
-                }
+
+        $subscription = $provider->showSubscriptionDetails($order->stripe_id);
+        if (isset($subscription['error'])) {
+            error_log("PaypalController::getSubscriptionStatus() :\n" . json_encode($subscription));
+            return back()->with(['message' => 'PayPal Gateway : ' . $subscription['error']['message'], 'type' => 'error']);
+        }
+        if (isset($subscription['billing_info']['cycle_executions'][0]['tenure_type'])) {
+            if ($subscription['billing_info']['cycle_executions'][0]['tenure_type'] == 'TRIAL') {
+                return true;
             }
         }
+
         return false;
     }
 
-    public static function getSubscriptionDetails()
+    public static function getSubscriptionDetails($order)
     {
         $provider = self::getPaypalProvider();
-        $userId = Auth::user()->id;
-        // Get current active subscription
-        $activeSub = SubscriptionsModel::where([['stripe_status', '=', 'active'], ['user_id', '=', $userId]])->orWhere([['stripe_status', '=', 'trialing'], ['user_id', '=', $userId]])->first();
-        if ($activeSub != null) {
-            return $provider->showSubscriptionDetails($activeSub->stripe_id);
-        }
-        return null;
+
+        return $provider->showSubscriptionDetails($order->stripe_id);
     }
 
 
 
-    public static function getSubscriptionRenewDate()
+    public static function getSubscriptionRenewDate($order)
     {
         $provider = self::getPaypalProvider();
-        $userId = Auth::user()->id;
-        // Get current active subscription
-        $activeSub = SubscriptionsModel::where([['stripe_status', '=', 'active'], ['user_id', '=', $userId]])->orWhere([['stripe_status', '=', 'trialing'], ['user_id', '=', $userId]])->first();
-        if ($activeSub != null) {
-            $subscription = $provider->showSubscriptionDetails($activeSub->stripe_id);
 
-            if (isset($subscription['error'])) {
-                error_log("PaypalController::getSubscriptionStatus() :\n" . json_encode($subscription));
-                return back()->with(['message' => 'PayPal Gateway : ' . $subscription['error']['message'], 'type' => 'error']);
-            }
+        $subscription = $provider->showSubscriptionDetails($order->stripe_id);
 
-            if ($subscription['billing_info']['next_billing_time']) {
-                return \Carbon\Carbon::parse($subscription['billing_info']['next_billing_time'])->format('F jS, Y');
-            } else {
-                $activeSub->stripe_status = "cancelled";
-                $activeSub->ends_at = \Carbon\Carbon::now();
-                $activeSub->save();
-                return \Carbon\Carbon::now()->format('F jS, Y');
-            }
+        if (isset($subscription['error'])) {
+            error_log("PaypalController::getSubscriptionStatus() :\n" . json_encode($subscription));
+            return back()->with(['message' => 'PayPal Gateway : ' . $subscription['error']['message'], 'type' => 'error']);
         }
+
+        if ($subscription['billing_info']['next_billing_time']) {
+            return \Carbon\Carbon::parse($subscription['billing_info']['next_billing_time'])->format('F jS, Y');
+        } else {
+            $order->stripe_status = "cancelled";
+            $order->ends_at = \Carbon\Carbon::now();
+            $order->save();
+            return \Carbon\Carbon::now()->format('F jS, Y');
+        }
+
         return null;
     }
 
@@ -850,87 +806,84 @@ class PaypalController extends BaseController
     /**
      * Checks status directly from gateway and updates database if cancelled or suspended.
      */
-    public static function getSubscriptionStatus()
+    public static function getSubscriptionStatus($order)
     {
         $provider = self::getPaypalProvider();
-        $userId = Auth::user()->id;
-        // Get current active subscription
-        $activeSub = SubscriptionsModel::where([['stripe_status', '=', 'active'], ['user_id', '=', $userId]])->orWhere([['stripe_status', '=', 'trialing'], ['user_id', '=', $userId]])->first();
-        if ($activeSub != null) {
-            $subscription = $provider->showSubscriptionDetails($activeSub->stripe_id);
 
-            if (isset($subscription['error'])) {
-                error_log("PaypalController::getSubscriptionStatus() :\n" . json_encode($subscription));
-                return back()->with(['message' => 'PayPal Gateway : ' . $subscription['error']['message'], 'type' => 'error']);
-            }
+        $subscription = $provider->showSubscriptionDetails($order->stripe_id);
 
-            if ($subscription['status'] == 'ACTIVE') {
-                return true;
-            } else {
-                $activeSub->stripe_status = 'cancelled';
-                $activeSub->ends_at = \Carbon\Carbon::now();
-                $activeSub->save();
-                return false;
-            }
+        if (isset($subscription['error'])) {
+            error_log("PaypalController::getSubscriptionStatus() :\n" . json_encode($subscription));
+            return back()->with(['message' => 'PayPal Gateway : ' . $subscription['error']['message'], 'type' => 'error']);
         }
+
+        if ($subscription['status'] == 'ACTIVE') {
+            return true;
+        } else {
+            $order->stripe_status = 'cancelled';
+            $order->ends_at = \Carbon\Carbon::now();
+            $order->save();
+            return false;
+        }
+
         return null;
     }
 
 
     /**
-     * Since price id (billing plan) is changed, we must update user data, i.e cancel current subscriptions.
+     * Since price id (billing plan) is changed, we must update user data, i.e cancel current payments.
      */
     public static function updateUserData()
     {
 
-        $history = Oldself::$gatewayProducts::where([
-            "gateway_code" => 'paypal',
-            "status" => 'check'
-        ])->get();
+        // $history = Oldself::$gatewayProducts::where([
+        //     "gateway_code" => 'paypal',
+        //     "status" => 'check'
+        // ])->get();
 
-        if ($history != null) {
+        // if ($history != null) {
 
-            $provider = self::getPaypalProvider();
+        //     $provider = self::getPaypalProvider();
 
-            foreach ($history as $record) {
+        //     foreach ($history as $record) {
 
-                // check record current status from gateway
-                $lookingFor = $record->old_price_id; // billingPlan id in paypal
+        //         // check record current status from gateway
+        //         $lookingFor = $record->old_price_id; // billingPlan id in paypal
 
-                // if active disable it
-                $oldBillingPlan = $provider->deactivatePlan($lookingFor);
+        //         // if active disable it
+        //         $oldBillingPlan = $provider->deactivatePlan($lookingFor);
 
-                if ($oldBillingPlan == "") {
-                    //deactivated billing plan from gateway
-                } else {
-                    error_log("PaypalController::updateUserData():\n" . json_encode($oldBillingPlan));
-                }
+        //         if ($oldBillingPlan == "") {
+        //             //deactivated billing plan from gateway
+        //         } else {
+        //             error_log("PaypalController::updateUserData():\n" . json_encode($oldBillingPlan));
+        //         }
 
-                // search subscriptions for record
-                $subs = SubscriptionsModel::where([
-                    'stripe_status' => 'active',
-                    'stripe_price'  => $lookingFor
-                ])->get();
+        //         // search subscriptions for record
+        //         $subs = SubscriptionsModel::where([
+        //             'stripe_status' => 'active',
+        //             'stripe_price'  => $lookingFor
+        //         ])->get();
 
-                if ($subs != null) {
-                    foreach ($subs as $sub) {
-                        // if found get order id
-                        $orderId = $sub->stripe_id;
+        //         if ($subs != null) {
+        //             foreach ($subs as $sub) {
+        //                 // if found get order id
+        //                 $orderId = $sub->stripe_id;
 
-                        // cancel subscription order from gateway
-                        $response = $provider->cancelSubscription($orderId, 'New plan created by admin.');
+        //                 // cancel subscription order from gateway
+        //                 $response = $provider->cancelSubscription($orderId, 'New plan created by admin.');
 
-                        // cancel subscription from our database
-                        $sub->stripe_status = 'cancelled';
-                        $sub->ends_at = \Carbon\Carbon::now();
-                        $sub->save();
-                    }
-                }
+        //                 // cancel subscription from our database
+        //                 $sub->stripe_status = 'cancelled';
+        //                 $sub->ends_at = \Carbon\Carbon::now();
+        //                 $sub->save();
+        //             }
+        //         }
 
-                $record->status = 'checked';
-                $record->save();
-            }
-        }
+        //         $record->status = 'checked';
+        //         $record->save();
+        //     }
+        // }
     }
 
 
@@ -939,35 +892,37 @@ class PaypalController extends BaseController
     public static function cancelSubscribedPlan($planId, $subsId)
     {
 
-        $user = Auth::user();
+        // $user = Auth::user();
 
-        $provider = self::getPaypalProvider();
+        // $provider = self::getPaypalProvider();
 
-        $currentSubscription = SubscriptionsModel::where('id', $subsId)->first();
+        // $currentSubscription = SubscriptionsModel::where('id', $subsId)->first();
 
-        if ($currentSubscription != null) {
-            $plan = self::$planModel::where('id', $planId)->first();
+        // if ($currentSubscription != null) {
+        //     $plan = self::$planModel::where('id', $planId)->first();
 
-            $response = $provider->cancelSubscription($currentSubscription->stripe_id, 'Plan deleted by admin.');
+        //     $response = $provider->cancelSubscription($currentSubscription->stripe_id, 'Plan deleted by admin.');
 
-            if ($response == "") {
-                $currentSubscription->stripe_status = "cancelled";
-                $currentSubscription->ends_at = \Carbon\Carbon::now();
-                $currentSubscription->save();
-                return true;
-            }
-        }
+        //     if ($response == "") {
+        //         $currentSubscription->stripe_status = "cancelled";
+        //         $currentSubscription->ends_at = \Carbon\Carbon::now();
+        //         $currentSubscription->save();
+        //         return true;
+        //     }
+        // }
 
-        return false;
+        // return false;
     }
 
     function verifyIncomingJson(Request $request)
     {
 
         try {
-            $gateway = Gateways::where("code", "paypal")->first();
 
-            if ($gateway->mode == 'sandbox') {
+            if (!config('payments.paypal.enable')) {
+                return true;
+            }
+            if (config('payments.paypal.mode') == 'sandbox') {
                 // Paypal does not support verification on sandbox mode
                 return true;
             }
@@ -1011,7 +966,7 @@ class PaypalController extends BaseController
             }
 
 
-            $webhook_id = $gateway->webhook_id;
+            $webhook_id = setting('paypal.webhook_id');
             if ($webhook_id == null) {
                 return false;
             }
@@ -1066,11 +1021,11 @@ class PaypalController extends BaseController
 
         try {
 
-            $user = Auth::user();
+
 
             $provider = self::getPaypalProvider();
 
-            $gateway = Gateways::where("code", "paypal")->first();
+
 
             $webhooks = $provider->listWebHooks();
 
@@ -1093,9 +1048,9 @@ class PaypalController extends BaseController
             // 'BILLING.SUBSCRIPTION.SUSPENDED'    // A subscription is suspended.
 
             $response = $provider->createWebHook($url, $events);
-
-            $gateway->webhook_id = $response->id;
-            $gateway->save();
+            setting('paypal.webhook_id', $response->id)->save();
+            // $gateway->webhook_id = $response->id;
+            // $gateway->save();
         } catch (\Exception $th) {
             error_log("PaypalController::createWebhook(): " . $th->getMessage());
             return back()->with(['message' => $th->getMessage(), 'type' => 'error']);

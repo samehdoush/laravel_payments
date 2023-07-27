@@ -11,8 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create(config('subscriptions.tables.old_gateway_products'), function (Blueprint $table) {
+        Schema::create(config('payments.tables.old_gateway_products'), function (Blueprint $table) {
             $table->id();
+            $table->string('old_product_id')->nullable();
             $table->integer('plan_id')->default(0);
             $table->string('plan_name')->nullable();
             $table->string('gateway_code')->nullable();
@@ -29,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists(config('subscriptions.tables.old_gateway_products'));
+        Schema::dropIfExists(config('payments.tables.old_gateway_products'));
     }
 };

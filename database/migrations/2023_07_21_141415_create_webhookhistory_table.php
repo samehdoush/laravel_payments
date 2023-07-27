@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create(config('subscriptions.tables.webhook_history'), function (Blueprint $table) {
+        Schema::create(config('payments.tables.webhook_history'), function (Blueprint $table) {
             $table->id();
             $table->string('gatewaycode')->nullable();
             $table->string('webhook_id')->nullable();
@@ -35,6 +35,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists(config('subscriptions.tables.webhook_history'));
+        Schema::dropIfExists(config('payments.tables.webhook_history'));
     }
 };

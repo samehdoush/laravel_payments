@@ -2,9 +2,11 @@
 
 namespace Samehdoush\LaravelPayments;
 
+
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Samehdoush\LaravelPayments\Commands\LaravelPaymentsCommand;
+use Samehdoush\LaravelPayments\EventServiceProvider as LaravelPaymentsEventServiceProvider;
 
 class LaravelPaymentsServiceProvider extends PackageServiceProvider
 {
@@ -21,5 +23,19 @@ class LaravelPaymentsServiceProvider extends PackageServiceProvider
             ->hasViews()
             ->hasMigration('create_laravel-payments_table')
             ->hasCommand(LaravelPaymentsCommand::class);
+    }
+
+    // public function boot()
+    // {
+    //     parent::boot();
+    //     \Illuminate\Support\Facades\Event::listen(
+    //         PaypalWebhookEvent::class,
+    //         PaypalWebhookListener::class
+    //     );
+    // }
+
+    public function registeringPackage()
+    {
+        $this->app->register(LaravelPaymentsEventServiceProvider::class);
     }
 }

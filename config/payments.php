@@ -2,22 +2,28 @@
 
 // config for Samehdoush/LaravelPayments
 return [
+    // Tables name
     'tables' => [
-
 
         'webhook_history' => 'webhookhistory',
         'gateway_products' => 'gateway_products',
         'old_gateway_products' => 'old_gateway_products',
+        'orders' => 'orders',
     ],
 
-    // Subscriptions Models
+    //  Models
     'models' => [
 
-        'webhook_history' => \Samehdoush\Subscriptions\Models\WebhookHistory::class,
-        'gateway_products' => \Samehdoush\Subscriptions\Models\GatewayProducts::class,
-        'old_gateway_products' => \Samehdoush\Subscriptions\Models\OldGatewayProducts::class,
+        'webhook_history' => \Samehdoush\LaravelPayments\Models\WebhookHistory::class,
+        'gateway_products' => \Samehdoush\LaravelPayments\Models\GatewayProducts::class,
+        'old_gateway_products' => \Samehdoush\LaravelPayments\Models\OldGatewayProducts::class,
+        'order' => \Samehdoush\LaravelPayments\Models\Order::class,
+        // if Samehdoush\Subscriptions package is installed
+        'plan' =>  \Samehdoush\Subscriptions\Models\Plan::class,
 
     ],
+
+
     'paypal' => [
         'enable' => true,
         'mode' => 'sandbox', // 'sandbox' or 'live'
