@@ -320,12 +320,13 @@ class PaypalController extends BaseController
                     "description"   => $productName,
                     "type"          => "SERVICE",
                     "category"      => "SOFTWARE",
-                    "home_url" => config('app.url'),
+                    // "home_url" => config('app.url'),
                 ];
 
                 $request_id = 'create-product-' . time();
 
                 $newProduct = $provider->createProduct($data, $request_id);
+
                 $model = config('payments.models.gateway_products');
                 $product = new $model;
                 $product->plan_id = $planId;
@@ -411,6 +412,9 @@ class PaypalController extends BaseController
                           }
                         ]
                       }', true);
+
+                    // convet to array
+                    $pricing = json_decode(json_encode($pricing), true);
 
 
                     $plan = $provider->updatePlanPricing($product->product_id, $pricing);
