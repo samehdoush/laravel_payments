@@ -303,6 +303,14 @@ class PaypalController extends BaseController
                   
                   ]', true);
 
+
+                $data = [
+                    ['op' => 'replace', 'path' => '/description', 'value' => $productName],
+                    ['op' => 'replace', 'path' => '/name', 'value' => $productName],
+                ];
+
+
+
                 $request_id = 'create-product-' . time();
 
                 $newProduct = $provider->updateProduct($productData->product_id, $data);
@@ -348,8 +356,48 @@ class PaypalController extends BaseController
                     $product->price_id = __('Not Needed');
                     $product->save();
                 } else {
+
+
                     // Subscription
                     // Deactivate old billing plan --> Moved to updateUserData()
+
+                    $interval = $frequency;
+
+
+
+                    $jayParsedAry =
+                        [
+                            [
+                                "billing_cycle_sequence" => 1,
+                                "pricing_scheme" => [
+                                    "fixed_price" => [
+                                        "value" => strval($price),
+                                        "currency_code" => $currency
+                                    ]
+                                ]
+                            ]
+                        ];
+
+
+
+
+                    $plan = $provider->updatePlanPricing($product->price_id, $jayParsedAry);
+
+                    ///////////// To support old entries and prevent update issues on trial and non-trial areas
+                    ///////////// update system is cancelled. instead we are going to create new ones, deactivate old ones and replace them.
+
+                }
+            } else {
+                // price_id is null so we need to create plans
+
+                // One-Time price
+                if ($type == "o") {
+
+                    // Paypal handles one time prices with orders, so we do not need to set anything for one-time payments.
+                    $product->price_id = __('Not Needed');
+                    $product->save();
+                } else {
+                    // Subscription
                     $oldBillingPlanId = $product->price_id;
                     // $oldBillingPlan = $provider->deactivatePlan($oldBillingPlanId);
                     // create new billing plan with new values
@@ -377,47 +425,10 @@ class PaypalController extends BaseController
                     $history->save();
 
                     $tmp = self::updateUserData();
-
-                    ///////////// To support old entries and prevent update issues on trial and non-trial areas
-                    ///////////// update system is cancelled. instead we are going to create new ones, deactivate old ones and replace them.
-
-                }
-            } else {
-                // price_id is null so we need to create plans
-
-                // One-Time price
-                if ($type == "o") {
-
-                    // Paypal handles one time prices with orders, so we do not need to set anything for one-time payments.
-                    $product->price_id = __('Not Needed');
-                    $product->save();
-                } else {
-                    // Subscription
-
                     // to subscribe, first create billing plan. then subscribe with it. so price_id is billing_plan_id
                     // subscribe has different id and logic in paypal
 
-                    $interval = $frequency;
 
-                    $pricing = json_decode('{
-                        "pricing_schemes": [
-                          {
-                            "billing_cycle_sequence": 2,
-                            "pricing_scheme": {
-                              "fixed_price": {
-                                "value": ' . $price . ',
-                                "currency_code": ' . $currency . '
-                              }
-                            }
-                          }
-                        ]
-                      }', true);
-
-                    // convet to array
-                    $pricing = json_decode(json_encode($pricing), true);
-
-
-                    $plan = $provider->updatePlanPricing($product->product_id, $pricing);
                 }
             }
         } catch (\Exception $ex) {
