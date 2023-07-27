@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
 use Srmklive\PayPal\Services\PayPal as PayPalClient;
 
 use App\Events\PaypalWebhookEvent;
-
+use Samehdoush\LaravelPayments\Events\PaypalWebhookEvent as EventsPaypalWebhookEvent;
 
 /**
  * Controls ALL Payment actions of PayPal
@@ -363,8 +363,8 @@ class PaypalController extends BaseController
 
                     $product->price_id = $billingPlan['id'];
                     $product->save();
-
-                    $history = new config('payments.models.old_gateway_products');
+                    $model = config('payments.models.old_gateway_products');
+                    $history = new $model;
                     $history->plan_id = $planId;
                     $history->plan_name = $productName;
                     $history->gateway_code = 'paypal';
@@ -995,7 +995,7 @@ class PaypalController extends BaseController
             $payload = $request->getContent();
 
             // Fire the event with the payload
-            event(new PayPalWebhookEvent($payload));
+            event(new EventsPaypalWebhookEvent($payload));
 
             return response()->json(['success' => true]);
         } else {
