@@ -266,7 +266,7 @@ class PaypalController extends BaseController
      * @param incomingProvider Paypal provider object
      * @param trials Number of trials
      */
-    public static function saveProduct($planId, $productName, $price, $frequency = "MONTH", $type, PayPalClient $incomingProvider = null, $interval_count = 1, $trials = 0)
+    public static function saveProduct($planId, $productName, $price, $frequency = "MONTH", $type = 's', PayPalClient $incomingProvider = null, $interval_count = 1, $trials = 0)
     {
 
         try {
