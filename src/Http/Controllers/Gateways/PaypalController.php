@@ -83,7 +83,7 @@ class PaypalController extends BaseController
         $site_url = config('app.url');
 
         $client_id = config('payments.paypal.client_id');
-        $client_secret = config('payments.paypal.client_secret');
+        $client_secret = config('payments.paypal.secret');
         $app_id = config('payments.paypal.app_id');
         $config = [
             'mode'    =>  config('payments.paypal.mode', 'sandbox'),
@@ -424,6 +424,7 @@ class PaypalController extends BaseController
                 }
             }
         } catch (\Exception $ex) {
+            dd($ex->getMessage());
             error_log("PaypalController::saveProduct()\n" . $ex->getMessage());
             return back()->with(['message' => $ex->getMessage(), 'type' => 'error']);
         }
