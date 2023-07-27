@@ -1,4 +1,4 @@
-# This is my package laravel-payments
+#  laravel-payments for samehdoush/subscriptions
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/samehdoush/laravel-payments.svg?style=flat-square)](https://packagist.org/packages/samehdoush/laravel-payments)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/samehdoush/laravel-payments/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/samehdoush/laravel-payments/actions?query=workflow%3Arun-tests+branch%3Amain)
@@ -23,6 +23,11 @@ You can install the package via composer:
 composer require samehdoush/laravel-payments
 ```
 
+## Auto install
+```bash
+php artisan laravel-payments:install
+```
+## OR 
 You can publish and run the migrations with:
 
 ```bash

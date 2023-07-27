@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('stripe_id')->unique()->nullable();
             $table->string('stripe_status')->default('active');
             $table->string('stripe_price')->nullable();
+            $table->timestamp('ends_at')->nullable();
             $table->unsignedBigInteger('plan_id')->nullable();
             $table->string('payment_type')->nullable();
             $table->double('price')->nullable();
