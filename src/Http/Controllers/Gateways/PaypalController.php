@@ -1,20 +1,15 @@
 <?php
 
-namespace App\Http\Controllers\Gateways;
+namespace Samehdoush\LaravelPayments\Http\Controllers\Gateways;
 
 use Illuminate\Routing\Controller as BaseController;
 
 
 
-use App\Models\Gateways;
-
-use App\Models\Setting;
-use App\Models\Subscriptions as SubscriptionsModel;
-use App\Models\SubscriptionItems;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Auth;
+
 
 use Srmklive\PayPal\Services\PayPal as PayPalClient;
 

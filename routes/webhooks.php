@@ -1,14 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Route;
-use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
-use Carbon\Carbon;
-use App\Http\Controllers\GatewayController;
-use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\Gateways\StripeController;
-use App\Http\Controllers\Gateways\PaypalController;
-
+use Samehdoush\LaravelPayments\Http\Controllers\Gateways\PaypalController;
 
 Route::middleware('api')->prefix('api')->group(function () {
 

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Samehdoush\LaravelPayments\Traits;
 
-use App\Http\Controllers\Gateways\PaypalController;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Samehdoush\LaravelPayments\Http\Controllers\Gateways\PaypalController;
 
 trait HasOrder
 {
