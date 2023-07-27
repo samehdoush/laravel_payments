@@ -3,8 +3,8 @@
 namespace Samehdoush\LaravelPayments;
 
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
-use App\Events\PaypalWebhookEvent;
-use App\Listeners\PaypalWebhookListener;
+use Samehdoush\LaravelPayments\Events\PaypalWebhookEvent;
+use Samehdoush\LaravelPayments\Listeners\PaypalWebhookListener;
 
 class EventServiceProvider extends ServiceProvider
 {

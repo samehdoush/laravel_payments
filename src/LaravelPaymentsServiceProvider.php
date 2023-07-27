@@ -21,6 +21,7 @@ class LaravelPaymentsServiceProvider extends PackageServiceProvider
         $package
             ->name('laravel-payments')
             ->hasConfigFile()
+            ->hasRoute('webhooks')
             // ->hasViews()
             ->hasMigrations(['2023_03_01_134013_create_orders_table', '2023_07_21_124125_create_gatewayproducts_table', '2023_07_21_134503_create_oldgatewayproducts_table', '2023_07_21_141415_create_webhookhistory_table'])
             // ->hasCommand(LaravelPaymentsCommand::class)

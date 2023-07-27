@@ -1,10 +1,9 @@
 <?php
 
-namespace App\Listeners;
+namespace Samehdoush\LaravelPayments\Listeners;
 
-use App\Events\PaypalWebhookEvent;
-use App\Models\Subscriptions as SubscriptionsModel;
-use App\Models\WebhookHistory;
+use Samehdoush\LaravelPayments\Events\PaypalWebhookEvent;
+
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -87,9 +86,11 @@ class PaypalWebhookListener implements ShouldQueue
             ];
             $data = array_merge($data, $array);
             $model::create($data);
-
-
-
+            if ($event_type == 'PAYMENT.SALE.COMPLETED') {
+                $order = config('payments.models.order');
+                $currentSubscription =  $order::where('stripe_id', $resource_id)->first();
+                $order->ordable->newPlanSubscriptionWithOutTrail('main', $currentSubscription->plan_id);
+            }
 
             // switch/check event type
 
@@ -99,6 +100,11 @@ class PaypalWebhookListener implements ShouldQueue
                 $currentSubscription->stripe_status = "cancelled";
                 $currentSubscription->ends_at = \Carbon\Carbon::now();
                 $currentSubscription->save();
+                try {
+                    $order->ordable->planSubscription('main')?->cancel(true);
+                } catch (\Throwable $th) {
+                    //throw $th;
+                }
             } else if ($event_type == 'PAYMENT.SALE.COMPLETED') {
             }
 
