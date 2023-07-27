@@ -5,8 +5,7 @@ namespace Samehdoush\LaravelPayments;
 
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Samehdoush\LaravelPayments\Commands\LaravelPaymentsCommand;
-use Samehdoush\LaravelPayments\EventServiceProvider as LaravelPaymentsEventServiceProvider;
+
 use Spatie\LaravelPackageTools\Commands\InstallCommand;
 
 class LaravelPaymentsServiceProvider extends PackageServiceProvider
@@ -50,8 +49,5 @@ class LaravelPaymentsServiceProvider extends PackageServiceProvider
     //     );
     // }
 
-    public function registeringPackage()
-    {
-        $this->app->register(LaravelPaymentsEventServiceProvider::class);
-    }
+ 
 }
