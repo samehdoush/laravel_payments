@@ -23,14 +23,7 @@ class PaypalController extends BaseController
 {
 
 
-    public static $gatewayProducts = null;
-    public static $oldGatewayProducts = null;
-    public function __construct()
-    {
-
-        self::$gatewayProducts = config('payments.models.gateway_products');
-        self::$oldGatewayProducts = config('payments.models.old_gateway_products');
-    }
+ 
     /**
      * Reads GatewayProducts table and returns price id of the given plan
      */
@@ -40,7 +33,7 @@ class PaypalController extends BaseController
         //check if plan exists
 
         if (!is_null($planId)) {
-            $product = self::$gatewayProducts::where(["plan_id" => $planId, "gateway_code" => "paypal"])->first();
+            $product = config('payments.models.gateway_products')::where(["plan_id" => $planId, "gateway_code" => "paypal"])->first();
             if ($product != null) {
                 return $product->price_id;
             } else {
@@ -59,7 +52,7 @@ class PaypalController extends BaseController
         //check if plan exists
 
         if (!is_null($planId)) {
-            $product = self::$gatewayProducts::where(["plan_id" => $planId, "gateway_code" => "paypal"])->first();
+            $product = config('payments.models.gateway_products')::where(["plan_id" => $planId, "gateway_code" => "paypal"])->first();
             if ($product != null) {
                 return $product->product_id;
             } else {
@@ -284,7 +277,7 @@ class PaypalController extends BaseController
             $oldProductId = null;
 
             //check if product exists
-            $productData = self::$gatewayProducts::where(["plan_id" => $planId, "gateway_code" => "paypal"])->first();
+            $productData = config('payments.models.gateway_products')::where(["plan_id" => $planId, "gateway_code" => "paypal"])->first();
             if (!is_null($productData)) {
                 // Create product in every situation. maybe user updated paypal credentials.
                 if ($productData->product_id != null) { // && $productName != null
@@ -334,7 +327,7 @@ class PaypalController extends BaseController
 
                 $newProduct = $provider->createProduct($data, $request_id);
 
-                $product = new self::$gatewayProducts();
+                $product = new config('payments.models.gateway_products')();
                 $product->plan_id = $planId;
                 $product->plan_name = $productName;
                 $product->gateway_code = "paypal";
@@ -371,7 +364,7 @@ class PaypalController extends BaseController
                     $product->price_id = $billingPlan['id'];
                     $product->save();
 
-                    $history = new self::$oldGatewayProducts;
+                    $history = new config('payments.models.old_gateway_products');
                     $history->plan_id = $planId;
                     $history->plan_name = $productName;
                     $history->gateway_code = 'paypal';
@@ -832,7 +825,7 @@ class PaypalController extends BaseController
     public static function updateUserData()
     {
 
-        // $history = Oldself::$gatewayProducts::where([
+        // $history = Oldconfig('payments.models.gateway_products')::where([
         //     "gateway_code" => 'paypal',
         //     "status" => 'check'
         // ])->get();
