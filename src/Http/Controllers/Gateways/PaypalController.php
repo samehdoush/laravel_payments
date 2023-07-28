@@ -653,7 +653,15 @@ class PaypalController extends BaseController
             $productId = self::getPaypalProductId($planId);
 
             $plan = config('payments.models.plan')::find($planId);
-            $payment = config('payments.models.order')::where('order_id', $orderId)->first();
+            $payment = config('payments.models.order')::where('order_id', $orderId)->where('plan_id', $planId)->where('stripe_id', '!=', $paypalSubscriptionID)->first();
+            if (!$payment) {
+                return ["result" => "Payment not found"];
+            }
+            $subscription = $provider->showSubscriptionDetails($paypalSubscriptionID);
+            if ($subscription->status != 'ACTIVE' && $subscription->status != 'APPROVED' && $subscription->status != 'APPROVAL_PENDING') {
+                return ["result" => "Subscription not active"];
+            }
+
             $payment->stripe_id = $paypalSubscriptionID;
             $payment->stripe_price = $billingPlanId;
 
@@ -662,10 +670,11 @@ class PaypalController extends BaseController
             if ($payment != null) {
                 if ($user && config('payments.models.plan')) {
                     $plan = config('payments.models.plan')::find($payment->plan_id);
+
                     if ($sup =  $user->planSubscription('main')) {
                         $sup->changePlan($plan);
                     } else {
-                        $user->newPlanSubscriptionWithOutTrail('main', $plan);
+                        $user->newPlanSubscription('main', $plan);
                     }
                 }
 
