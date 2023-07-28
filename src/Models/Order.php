@@ -11,7 +11,7 @@ class Order extends Model
 {
     use HasFactory;
     use BelongsToPlan;
-
+    protected $guarded = [];
     public function __construct(array $attributes = [])
     {
         $this->setTable(config('payments.tables.orders'));

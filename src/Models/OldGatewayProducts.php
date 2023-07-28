@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class OldGatewayProducts extends Model
 {
     use HasFactory;
-
+    protected $guarded = [];
     public function __construct(array $attributes = [])
     {
         $this->setTable(config('payments.tables.old_gateway_products'));

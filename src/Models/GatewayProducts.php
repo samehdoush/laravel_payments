@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class GatewayProducts extends Model
 {
     use HasFactory;
+    protected $guarded = [];
     public function __construct(array $attributes = [])
     {
         $this->setTable(config('payments.tables.gateway_products'));

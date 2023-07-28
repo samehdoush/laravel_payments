@@ -671,7 +671,8 @@ class PaypalController extends BaseController
                     }
                 }
 
-                $payment->stripe_status = 'Success';
+                $payment->stripe_status = 'active';
+                $payment->status = 'Success';
 
                 $payment->save();
 
