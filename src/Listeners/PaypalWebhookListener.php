@@ -86,7 +86,7 @@ class PaypalWebhookListener implements ShouldQueue
             ];
             $data = array_merge($data, $array);
             $model::create($data);
-          
+
 
             // switch/check event type
 
@@ -104,7 +104,9 @@ class PaypalWebhookListener implements ShouldQueue
             } else if ($event_type == 'PAYMENT.SALE.COMPLETED') {
                 $order = config('payments.models.order');
                 $currentSubscription =  $order::where('stripe_id', $resource_id)->first();
-                $order->ordable->newPlanSubscriptionWithOutTrail('main', $currentSubscription->plan_id);
+                if ($currentSubscription) {
+                    $order->ordable->newPlanSubscriptionWithOutTrail('main', $currentSubscription->plan_id);
+                }
             }
 
 
