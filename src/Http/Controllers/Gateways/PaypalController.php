@@ -543,7 +543,7 @@ class PaypalController extends BaseController
             $provider = self::getPaypalProvider();
 
             $order = $provider->capturePaymentOrder($orderId);
-            $model = config('payments.model.order');
+            $model = config('payments.models.order');
             $payment = $model::where('order_id', $orderId)->first();
 
             if ($payment != null) {
@@ -607,7 +607,7 @@ class PaypalController extends BaseController
 
 
             if ($exception == null) {
-                $payment = config('payments.model.order');
+                $payment = config('payments.models.order');
                 $payment::create([
                     'order_id' => $orderId,
                     'plan_id' => $planId,
@@ -655,7 +655,7 @@ class PaypalController extends BaseController
             $productId = self::getPaypalProductId($planId);
 
             $plan = config('payments.models.plan')::find($planId);
-            $payment = config('payments.model.order')::where('order_id', $orderId)->first();
+            $payment = config('payments.models.order')::where('order_id', $orderId)->first();
             $payment->stripe_id = $paypalSubscriptionID;
             $payment->stripe_price = $billingPlanId;
 
