@@ -614,7 +614,7 @@ class PaypalController extends BaseController
                     'user_id' => $user->id,
                     'payment_type' => 'PayPal',
                     'price' => $plan->price,
-                    'affiliate_earnings' => ($plan->price * config('payments.affiliate_commission_percentage')) / 100,
+                    // 'affiliate_earnings' => ($plan->price * config('payments.affiliate_commission_percentage')) / 100,
                     'status' => 'Waiting',
                     'country' => $user->country ?? 'Unknown'
 
