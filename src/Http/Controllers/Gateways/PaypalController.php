@@ -607,14 +607,12 @@ class PaypalController extends BaseController
 
 
             if ($exception == null) {
-                $payment = config('payments.models.order');
-                $payment::create([
+
+                $user->orders()->create([
                     'order_id' => $orderId,
                     'plan_id' => $planId,
-                    'user_id' => $user->id,
                     'payment_type' => 'PayPal',
                     'price' => $plan->price,
-                    // 'affiliate_earnings' => ($plan->price * config('payments.affiliate_commission_percentage')) / 100,
                     'status' => 'Waiting',
                     'country' => $user->country ?? 'Unknown'
 
