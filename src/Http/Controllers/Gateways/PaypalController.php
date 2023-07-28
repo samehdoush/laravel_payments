@@ -498,8 +498,14 @@ class PaypalController extends BaseController
         } catch (\Exception $th) {
             $exception = Str::before($th->getMessage(), ':');
         }
-
-        return view('panel.user.payment.prepaid.payWithPaypal', compact('plan', 'orderId', 'gateway', 'exception', 'currency'));
+        return [
+            'plan' => $plan,
+            'orderId' => $orderId,
+            'gateway' => 'paypal',
+            'exception' => $exception,
+            'currency' => $currency
+        ];
+        // return view('panel.user.payment.prepaid.payWithPaypal', compact('plan', 'orderId', 'gateway', 'exception', 'currency'));
     }
 
 
