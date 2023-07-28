@@ -653,7 +653,7 @@ class PaypalController extends BaseController
             $productId = self::getPaypalProductId($planId);
 
             $plan = config('payments.models.plan')::find($planId);
-            $payment = config('payments.models.order')::where('order_id', $orderId)->where('plan_id', $planId)->where('stripe_id', '!=', $paypalSubscriptionID)->first();
+            $payment = config('payments.models.order')::where('order_id', $orderId)->where('stripe_id', '!=', $paypalSubscriptionID)->first();
             if (!$payment) {
                 return ["result" => "Payment not found"];
             }
