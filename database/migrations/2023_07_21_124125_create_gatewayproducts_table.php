@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('gateway_title')->nullable();
             $table->string('product_id')->nullable();
             $table->string('price_id')->nullable();
+            $table->string('mode')->default('sandbox');
             $table->timestamps();
         });
     }

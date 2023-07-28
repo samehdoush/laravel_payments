@@ -342,6 +342,7 @@ class PaypalController extends BaseController
                 $product->gateway_code = "paypal";
                 $product->gateway_title = "PayPal";
                 $product->product_id = $newProduct['id'];
+                $product->mode = config('payments.paypal.mode');
                 $product->save();
             }
 
