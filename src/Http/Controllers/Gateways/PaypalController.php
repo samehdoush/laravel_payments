@@ -677,11 +677,22 @@ class PaypalController extends BaseController
                     $plan = config('payments.models.plan')::find($payment->plan_id);
 
                     if ($sup =  $user->planSubscription('main')) {
+
+
                         $sup->changePlan($plan);
                     } else {
                         $user->newPlanSubscription('main', $plan);
                     }
+                    try {
+                        $user->planSubscription('main')->recordFeatureUsage('limit-user', $user->users()->count(), false);
+                        $user->planSubscription('main')->recordFeatureUsage('limit-callrecord', $user->callrecords()->count(), false);
+                        $user->planSubscription('main')->recordFeatureUsage('device', $user->waDevices()->count(), false);
+                        $user->planSubscription('main')->recordFeatureUsage('space', ($user->scripts()->select('id')->withSum('media', 'size')->get()?->sum('media_sum_size') / (1024 * 100)) ?? 0, false);
+                    } catch (\Throwable $th) {
+                        //throw $th;
+                    }
                 }
+
 
                 $payment->stripe_status = 'active';
                 $payment->status = 'Success';
