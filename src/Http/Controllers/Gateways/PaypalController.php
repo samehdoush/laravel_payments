@@ -663,7 +663,7 @@ class PaypalController extends BaseController
                 return ["result" => "Payment not found"];
             }
             $subscription = $provider->showSubscriptionDetails($paypalSubscriptionID);
-            if ($subscription->status != 'ACTIVE' && $subscription->status != 'APPROVED' && $subscription->status != 'APPROVAL_PENDING') {
+            if ($subscription['status'] != 'ACTIVE' && $subscription['status'] != 'APPROVED' && $subscription['status'] != 'APPROVAL_PENDING') {
                 return ["result" => "Subscription not active"];
             }
 
