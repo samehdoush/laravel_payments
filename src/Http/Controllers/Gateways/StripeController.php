@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Gateways;
+namespace Samehdoush\LaravelPayments\Http\Controllers\Gateways;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Routing\Controller as BaseController;
