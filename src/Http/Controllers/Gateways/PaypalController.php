@@ -277,7 +277,7 @@ class PaypalController extends BaseController
             $oldProductId = null;
 
             //check if product exists
-            $productData = config('payments.models.gateway_products')::where(["plan_id" => $planId, "gateway_code" => "paypal"])->first();
+            $productData = config('payments.models.gateway_products')::where(["plan_id" => $planId, "gateway_code" => "paypal", 'mode' => config('payments.paypal.mode')])->first();
             if (!is_null($productData)) {
                 // Create product in every situation. maybe user updated paypal credentials.
                 if ($productData->product_id != null) { // && $productName != null
@@ -870,10 +870,10 @@ class PaypalController extends BaseController
     public static function updateUserData()
     {
 
-        // $history = Oldconfig('payments.models.gateway_products')::where([
-        //     "gateway_code" => 'paypal',
-        //     "status" => 'check'
-        // ])->get();
+        $history = config('payments.models.old_gateway_products')::where([
+            "gateway_code" => 'paypal',
+            "status" => 'check'
+        ])->get();
 
         // if ($history != null) {
 
