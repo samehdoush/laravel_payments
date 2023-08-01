@@ -171,13 +171,21 @@ class StripeController extends BaseController
         self::cancelAllSubscriptions($user);
 
         if ($plan->trial_days != 0) {
-            $subscription = $user->newSubscription($planId, $productId)
+            $subscription = $user->newSubscription('main', $productId)
                 ->trialDays((int)$plan->trial_days)
                 ->create($request->token);
         } else {
-            $subscription = $user->newSubscription($planId, $productId)
+            $subscription = $user->newSubscription('main', $productId)
                 ->create($request->token);
         }
+        // if ($plan->trial_days != 0) {
+        //     $subscription = $user->newSubscription($planId, $productId)
+        //         ->trialDays((int)$plan->trial_days)
+        //         ->create($request->token);
+        // } else {
+        //     $subscription = $user->newSubscription($planId, $productId)
+        //         ->create($request->token);
+        // }
 
 
 
@@ -245,11 +253,14 @@ class StripeController extends BaseController
         if ($allSubscriptions != null) {
             Log::driver('slack')->info('Stripe Subscription Cancelled for ', collect($allSubscriptions)->first()->toArray());
             Log::driver('slack')->info('Stripe name Subscription Cancelled for ' . collect($allSubscriptions)->first()->name ?? '');
-            foreach ($allSubscriptions as $subs) {
-                if ($subs->name != 'undefined' and $subs->name != null) {
-                    $user->subscription($subs->name)->cancelNow();
-                }
-            }
+
+            $user->subscription('main')->cancelNow();
+            // foreach ($allSubscriptions as $subs) {
+            //     if ($subs->name != 'undefined' and $subs->name != null) {
+            //         $user->subscription($subs->name)->cancelNow();
+            //         
+            //     }
+            // }
         }
     }
 
@@ -271,7 +282,7 @@ class StripeController extends BaseController
         if ($activeSub != null) {
             // $plan = config('payments.models.plan')::where('id', $activeSub->plan_id)->first();
 
-            $user->subscription($activeSub->name)->cancelNow();
+            $user->subscription('main')->cancelNow();
 
 
             $user->save();
