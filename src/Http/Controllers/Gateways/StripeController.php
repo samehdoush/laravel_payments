@@ -219,7 +219,7 @@ class StripeController extends BaseController
         }
 
 
-        // return redirect()->route('dashboard.index')->with(['message' => 'Thank you for your purchase. Enjoy your remaining words and images.', 'type' => 'success']);
+        return redirect()->route('billing')->with(['message' => 'Thank you for your purchase. Enjoy', 'type' => 'success']);
     }
 
     /**
