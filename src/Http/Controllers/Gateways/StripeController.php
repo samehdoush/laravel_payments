@@ -254,7 +254,7 @@ class StripeController extends BaseController
             Log::driver('slack')->info('Stripe Subscription Cancelled for ', collect($allSubscriptions)->first()->toArray());
             Log::driver('slack')->info('Stripe name Subscription Cancelled for ' . collect($allSubscriptions)->first()->name ?? '');
 
-            $user->subscription('main')->cancelNow();
+            $user->subscription('main')?->cancelNow();
             // foreach ($allSubscriptions as $subs) {
             //     if ($subs->name != 'undefined' and $subs->name != null) {
             //         $user->subscription($subs->name)->cancelNow();
@@ -282,7 +282,7 @@ class StripeController extends BaseController
         if ($activeSub != null) {
             // $plan = config('payments.models.plan')::where('id', $activeSub->plan_id)->first();
 
-            $user->subscription('main')->cancelNow();
+            $user->subscription('main')?->cancelNow();
 
 
             $user->save();
