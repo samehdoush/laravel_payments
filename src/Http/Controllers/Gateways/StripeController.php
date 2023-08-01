@@ -257,7 +257,8 @@ class StripeController extends BaseController
             // Log::driver('slack')->info('Stripe Subscription Cancelled for ', collect($allSubscriptions)->first()->toArray());
             // Log::driver('slack')->info('Stripe name Subscription Cancelled for ' . collect($allSubscriptions)->first()->name ?? '');
             try {
-                $user->subscription('main')?->cancelNow();
+                // $user->subscription('main')?->cancelNow();
+                $user->subscription('main')?->cancel();
             } catch (\Throwable $th) {
                 //throw $th;
             }
@@ -290,7 +291,7 @@ class StripeController extends BaseController
             // $plan = config('payments.models.plan')::where('id', $activeSub->plan_id)->first();
 
             try {
-                $user->subscription('main')?->cancelNow();
+                $user->subscription('main')?->cancel();
             } catch (\Throwable $th) {
                 //throw $th;
             }
@@ -758,7 +759,7 @@ class StripeController extends BaseController
                     if ($subs != null) {
                         foreach ($subs as $sub) {
                             // cancel subscription order from gateway
-                            $user->subscription('main')->cancelNow();
+                            $user->subscription('main')->cancel();
 
                             // cancel subscription from our database
                             $sub->stripe_status = 'cancelled';
@@ -791,7 +792,7 @@ class StripeController extends BaseController
             }
 
             $stripe = self::getStripProvider();
-            $user->subscription('main')?->cancelNow();
+            $user->subscription('main')?->cancel();
             // $user->subscription($planId)->cancelNow();
             $user->save();
 
