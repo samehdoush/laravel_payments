@@ -298,11 +298,13 @@ class StripeController extends BaseController
             $user->save();
 
 
+            return ['message' => 'Your subscription is cancelled succesfully.', 'type' => 'success'];
 
-            return back()->with(['message' => 'Your subscription is cancelled succesfully.', 'type' => 'success']);
+            // return back()->with(['message' => 'Your subscription is cancelled succesfully.', 'type' => 'success']);
         }
+        return ['message' => 'Could not find active subscription. Nothing changed!', 'type' => 'error'];
 
-        return back()->with(['message' => 'Could not find active subscription. Nothing changed!', 'type' => 'error']);
+        // return back()->with(['message' => 'Could not find active subscription. Nothing changed!', 'type' => 'error']);
     }
 
 
