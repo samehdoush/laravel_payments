@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 use Laravel\Cashier\Cashier;
 use Laravel\Cashier\Subscription;
 use Laravel\Cashier\Payment;
@@ -242,6 +243,7 @@ class StripeController extends BaseController
 
         $allSubscriptions = $stripe->subscriptions->all();
         if ($allSubscriptions != null) {
+            Log::driver('slack')->info('Stripe Subscription Cancelled for ', collect($allSubscriptions)->toArray());
             foreach ($allSubscriptions as $subs) {
                 if ($subs->name != 'undefined' and $subs->name != null) {
                     $user->subscription($subs->name)->cancelNow();
