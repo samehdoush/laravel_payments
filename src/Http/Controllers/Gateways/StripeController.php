@@ -253,8 +253,12 @@ class StripeController extends BaseController
         if ($allSubscriptions != null) {
             // Log::driver('slack')->info('Stripe Subscription Cancelled for ', collect($allSubscriptions)->first()->toArray());
             // Log::driver('slack')->info('Stripe name Subscription Cancelled for ' . collect($allSubscriptions)->first()->name ?? '');
+            try {
+                $user->subscription('main')?->cancelNow();
+            } catch (\Throwable $th) {
+                //throw $th;
+            }
 
-            $user->subscription('main')?->cancelNow();
             // foreach ($allSubscriptions as $subs) {
             //     if ($subs->name != 'undefined' and $subs->name != null) {
             //         $user->subscription($subs->name)->cancelNow();
@@ -282,8 +286,11 @@ class StripeController extends BaseController
         if ($activeSub != null) {
             // $plan = config('payments.models.plan')::where('id', $activeSub->plan_id)->first();
 
-            $user->subscription('main')?->cancelNow();
-
+            try {
+                $user->subscription('main')?->cancelNow();
+            } catch (\Throwable $th) {
+                //throw $th;
+            }
 
             $user->save();
 
@@ -746,7 +753,7 @@ class StripeController extends BaseController
                     if ($subs != null) {
                         foreach ($subs as $sub) {
                             // cancel subscription order from gateway
-                            $user->subscription($sub->name)->cancelNow();
+                            $user->subscription('main')->cancelNow();
 
                             // cancel subscription from our database
                             $sub->stripe_status = 'cancelled';
@@ -779,7 +786,8 @@ class StripeController extends BaseController
             }
 
             $stripe = self::getStripProvider();
-            $user->subscription($planId)->cancelNow();
+            $user->subscription('main')?->cancelNow();
+            // $user->subscription($planId)->cancelNow();
             $user->save();
 
             return true;
