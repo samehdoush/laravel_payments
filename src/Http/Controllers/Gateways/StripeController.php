@@ -214,6 +214,9 @@ class StripeController extends BaseController
 
 
                 $sup->changePlan($plan);
+                $sup->update([
+                    'canceled_at' => null,
+                ]);
             } else {
                 $user->newPlanSubscription('main', $plan);
             }

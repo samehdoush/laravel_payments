@@ -557,6 +557,9 @@ class PaypalController extends BaseController
                         $plan = config('payments.models.plan')::find($payment->plan_id);
                         if ($sup =  $payment->orderable->planSubscription('main')) {
                             $sup->changePlan($plan);
+                            $sup->update([
+                                'canceled_at' => null,
+                            ]);
                         } else {
                             $payment->orderable->newPlanSubscriptionWithOutTrail('main', $plan);
                         }
@@ -681,6 +684,9 @@ class PaypalController extends BaseController
 
 
                         $sup->changePlan($plan);
+                        $sup->update([
+                            'canceled_at' => null,
+                        ]);
                     } else {
                         $user->newPlanSubscription('main', $plan);
                     }
