@@ -53,8 +53,8 @@ class PaypalWebhookListener implements ShouldQueue
     public function handle(PaypalWebhookEvent $event): void
     {
         try {
-            Log::info(json_encode($event->payload));
-
+            // Log::info(json_encode($event->payload));
+            Log::driver('slack')->info('Paypal Event', $event->payload);
             $incomingJson = json_decode($event->payload);
 
             // Incoming data is verified at PaypalController handleWebhook function, which fires this event.
