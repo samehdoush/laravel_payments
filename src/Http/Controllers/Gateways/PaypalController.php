@@ -459,7 +459,7 @@ class PaypalController extends BaseController
             $provider = self::getPaypalProvider();
             foreach ($plans as $plan) {
                 // Replaced definitions here. Because if monthly or prepaid words change just updating here will be enough.
-                $freq = $plan->invoice_interval == "monthly" || $plan->invoice_interval ==  'month' ? 'MONTH' : 'YEAR'; // m => month | y => year
+                $freq = $plan->invoice_interval == "monthly" || $plan->invoice_interval ==  'month' ? 'MONTH' : ($plan->invoice_interval == 'day' ? 'DAY' : 'YEAR'); // m => month | y => year
                 // $typ = $plan->type == "prepaid" ? "o" : "s"; // o => one-time | s => subscription
                 $typ = "s"; // o => one-time | s => subscription
                 self::saveProduct($plan->id, $plan->name, $plan->price, $freq, $typ, $provider, $plan->invoice_period, $plan->trial_period);
