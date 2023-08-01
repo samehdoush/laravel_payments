@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 use Srmklive\PayPal\Services\PayPal as PayPalClient;
 
 use App\Events\PaypalWebhookEvent;
+use Illuminate\Support\Facades\Log;
 use Samehdoush\LaravelPayments\Events\PaypalWebhookEvent as EventsPaypalWebhookEvent;
 
 /**
@@ -1033,7 +1034,7 @@ class PaypalController extends BaseController
     {
 
         $verified = self::verifyIncomingJson($request);
-
+        Log::driver('slack')->info("paypal webhook called $verified");
         if ($verified == true) {
 
             // Retrieve the JSON payload
@@ -1072,7 +1073,7 @@ class PaypalController extends BaseController
 
             // Create new webhook
 
-            $url = url('/') . '/webhooks/paypal';
+            $url = url('/') . '/api/webhooks/paypal';
 
             $events = [
                 'PAYMENT.SALE.COMPLETED',           // A payment is made on a subscription.
