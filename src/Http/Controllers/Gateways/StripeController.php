@@ -416,7 +416,7 @@ class StripeController extends BaseController
      * @param frequency Time interval of subscription, month / annual
      * @param type Type of product subscription/one-time
      */
-    public static function saveProduct($planId, $productName, $price, $frequency = "MONTH", $type = 's')
+    public static function saveProduct($planId, $productName, $price, $frequency = "MONTH", $interval_count = 1, $type = 's')
     {
 
         try {
@@ -494,7 +494,7 @@ class StripeController extends BaseController
                     $updatedPrice = $stripe->prices->create([
                         'unit_amount' => $price,
                         'currency' => $currency,
-                        'recurring' => ['interval' => $frequency == "MONTH" ? 'month' : ($frequency == 'DAY' ? 'day' : 'year')],
+                        'recurring' => ['interval' => $frequency == "MONTH" ? 'month' : ($frequency == 'DAY' ? 'day' : 'year'), 'interval_count' => $interval_count],
                         'product' => $product->product_id,
                     ]);
                     $product->price_id = $updatedPrice->id;
@@ -600,7 +600,7 @@ class StripeController extends BaseController
                 // $typ = $plan->type == "prepaid" ? "o" : "s"; // o => one-time | s => subscription
                 $typ = "s"; // o => one-time | s => subscription
 
-                self::saveProduct($plan->id, $plan->name, $plan->price, $freq, $typ);
+                self::saveProduct($plan->id, $plan->name, $plan->price, $freq, $plan->invoice_period, $typ);
             }
         } catch (\Exception $ex) {
             error_log("StripeController::saveAllProducts()\n" . $ex->getMessage());
