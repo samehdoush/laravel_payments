@@ -251,8 +251,8 @@ class StripeController extends BaseController
 
         $allSubscriptions = $stripe->subscriptions->all();
         if ($allSubscriptions != null) {
-            Log::driver('slack')->info('Stripe Subscription Cancelled for ', collect($allSubscriptions)->first()->toArray());
-            Log::driver('slack')->info('Stripe name Subscription Cancelled for ' . collect($allSubscriptions)->first()->name ?? '');
+            // Log::driver('slack')->info('Stripe Subscription Cancelled for ', collect($allSubscriptions)->first()->toArray());
+            // Log::driver('slack')->info('Stripe name Subscription Cancelled for ' . collect($allSubscriptions)->first()->name ?? '');
 
             $user->subscription('main')?->cancelNow();
             // foreach ($allSubscriptions as $subs) {
