@@ -436,7 +436,7 @@ class PaypalController extends BaseController
                 }
             }
         } catch (\Exception $ex) {
-            dd($ex->getMessage());
+            dd($ex->getMessage(), $ex->getLine(), $ex->getFile());
             error_log("PaypalController::saveProduct()\n" . $ex->getMessage());
             return back()->with(['message' => $ex->getMessage(), 'type' => 'error']);
         }
@@ -525,10 +525,10 @@ class PaypalController extends BaseController
                 [
                     [
                         "amount" =>
-                        [
-                            "currency_code" => config('payments.paypal.currency'),
-                            "value" => strval($price)
-                        ]
+                            [
+                                "currency_code" => config('payments.paypal.currency'),
+                                "value" => strval($price)
+                            ]
                     ]
                 ]
         ];
