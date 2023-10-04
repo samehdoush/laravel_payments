@@ -33,7 +33,7 @@ class PaypalController extends BaseController
 
         //check if plan exists
 
-        if (!is_null($planId)) {
+        if (! is_null($planId)) {
             $product = config('payments.models.gateway_products')::where(["plan_id" => $planId, "gateway_code" => "paypal"])->first();
             if ($product != null) {
                 return $product->price_id;
@@ -52,7 +52,7 @@ class PaypalController extends BaseController
 
         //check if plan exists
 
-        if (!is_null($planId)) {
+        if (! is_null($planId)) {
             $product = config('payments.models.gateway_products')::where(["plan_id" => $planId, "gateway_code" => "paypal"])->first();
             if ($product != null) {
                 return $product->product_id;
@@ -66,11 +66,11 @@ class PaypalController extends BaseController
     /**
      * Returns provider of Paypal
      */
-    public static function getPaypalProvider(): PayPalClient
+    public static function getPaypalProvider() : PayPalClient
     {
 
 
-        if (!config('payments.paypal.enable')) {
+        if (! config('payments.paypal.enable')) {
             abort(404);
         }
         $currency = config('payments.paypal.currency');
@@ -80,22 +80,22 @@ class PaypalController extends BaseController
         $client_secret = config('payments.paypal.secret');
         $app_id = config('payments.paypal.app_id');
         $config = [
-            'mode'    =>  config('payments.paypal.mode', 'sandbox'),
+            'mode' => config('payments.paypal.mode', 'sandbox'),
             'sandbox' => [
-                'client_id'         => $client_id,
-                'client_secret'     => $client_secret,
-                'app_id'            => $app_id,
+                'client_id' => $client_id,
+                'client_secret' => $client_secret,
+                'app_id' => $app_id,
             ],
             'live' => [
-                'client_id'         => $client_id,
-                'client_secret'     => $client_secret,
-                'app_id'            => $app_id,
+                'client_id' => $client_id,
+                'client_secret' => $client_secret,
+                'app_id' => $app_id,
             ],
             'payment_action' => 'Sale',
-            'currency'       => $currency,
-            'notify_url'     => $site_url . '/paypal/notify',
-            'locale'         => $currency,
-            'validate_ssl'   => config('payments.paypal.mode', 'sandbox')  == 'sandbox' ? false : true,
+            'currency' => $currency,
+            'notify_url' => $site_url . '/paypal/notify',
+            'locale' => $currency,
+            'validate_ssl' => config('payments.paypal.mode', 'sandbox') == 'sandbox' ? false : true,
         ];
 
 
@@ -139,102 +139,102 @@ class PaypalController extends BaseController
 
         if ($trials == 0) {
             $planData = [
-                "product_id"        => $productId,
-                "name"              => $productName,
-                "description"       => "Billing Plan of " . $productName,
-                "status"            => "ACTIVE",
-                "billing_cycles"    =>
-                [
+                "product_id" => $productId,
+                "name" => $productName,
+                "description" => "Billing Plan of " . $productName,
+                "status" => "ACTIVE",
+                "billing_cycles" =>
                     [
-                        "frequency" =>
                         [
-                            "interval_unit"     => $interval,
-                            "interval_count"    => $interval_count
-                        ],
-                        "tenure_type"       => "REGULAR",
-                        "sequence"          => 1,
-                        "total_cycles"      => 0,
-                        "pricing_scheme"    =>
-                        [
-                            "fixed_price"   =>
-                            [
-                                "value"         => strval($price),
-                                "currency_code" => $currency
-                            ]
+                            "frequency" =>
+                                [
+                                    "interval_unit" => $interval,
+                                    "interval_count" => $interval_count
+                                ],
+                            "tenure_type" => "REGULAR",
+                            "sequence" => 1,
+                            "total_cycles" => 0,
+                            "pricing_scheme" =>
+                                [
+                                    "fixed_price" =>
+                                        [
+                                            "value" => strval($price),
+                                            "currency_code" => $currency
+                                        ]
+                                ]
                         ]
-                    ]
-                ],
-                "payment_preferences" =>
-                [
-                    "auto_bill_outstanding" => true,
-                    "setup_fee" =>
-                    [
-                        "value"         => "0",
-                        "currency_code" => $currency
                     ],
-                    "setup_fee_failure_action"  => "CANCEL",
-                    "payment_failure_threshold" => 3
-                ]
+                "payment_preferences" =>
+                    [
+                        "auto_bill_outstanding" => true,
+                        "setup_fee" =>
+                            [
+                                "value" => "0",
+                                "currency_code" => $currency
+                            ],
+                        "setup_fee_failure_action" => "CANCEL",
+                        "payment_failure_threshold" => 3
+                    ]
             ];
         } else {
             $planData = [
-                "product_id"        => $productId,
-                "name"              => $productName,
-                "description"       => "Billing Plan of " . $productName,
-                "status"            => "ACTIVE",
-                "billing_cycles"    =>
-                [
+                "product_id" => $productId,
+                "name" => $productName,
+                "description" => "Billing Plan of " . $productName,
+                "status" => "ACTIVE",
+                "billing_cycles" =>
                     [
-                        "frequency" =>
                         [
-                            "interval_unit"     => 'DAY',
-                            "interval_count"    => 1
+                            "frequency" =>
+                                [
+                                    "interval_unit" => 'DAY',
+                                    "interval_count" => 1
+                                ],
+                            "tenure_type" => "TRIAL",
+                            "sequence" => 1,
+                            "total_cycles" => $trials,
+                            "pricing_scheme" =>
+                                [
+                                    "fixed_price" =>
+                                        [
+                                            "value" => 0,
+                                            "currency_code" => $currency
+                                        ]
+                                ]
                         ],
-                        "tenure_type"       => "TRIAL",
-                        "sequence"          => 1,
-                        "total_cycles"      => $trials,
-                        "pricing_scheme"    =>
                         [
-                            "fixed_price"   =>
-                            [
-                                "value"         => 0,
-                                "currency_code" => $currency
-                            ]
+                            "frequency" =>
+                                [
+                                    "interval_unit" => $interval,
+                                    "interval_count" => $interval_count
+                                ],
+                            "tenure_type" => "REGULAR",
+                            "sequence" => 2,
+                            "total_cycles" => 0,
+                            "pricing_scheme" =>
+                                [
+                                    "fixed_price" =>
+                                        [
+                                            "value" => strval($price),
+                                            "currency_code" => $currency
+                                        ]
+                                ]
                         ]
                     ],
-                    [
-                        "frequency" =>
-                        [
-                            "interval_unit"     => $interval,
-                            "interval_count"    => $interval_count
-                        ],
-                        "tenure_type"       => "REGULAR",
-                        "sequence"          => 2,
-                        "total_cycles"      => 0,
-                        "pricing_scheme"    =>
-                        [
-                            "fixed_price"   =>
-                            [
-                                "value"         => strval($price),
-                                "currency_code" => $currency
-                            ]
-                        ]
-                    ]
-                ],
                 "payment_preferences" =>
-                [
-                    "auto_bill_outstanding" => true,
-                    "setup_fee" =>
                     [
-                        "value"         => "0",
-                        "currency_code" => $currency
-                    ],
-                    "setup_fee_failure_action"  => "CANCEL",
-                    "payment_failure_threshold" => 3
-                ]
+                        "auto_bill_outstanding" => true,
+                        "setup_fee" =>
+                            [
+                                "value" => "0",
+                                "currency_code" => $currency
+                            ],
+                        "setup_fee_failure_action" => "CANCEL",
+                        "payment_failure_threshold" => 3
+                    ]
             ];
 
-            // "taxes" => 
+            // "taxes" =>
             //     [
             //         "percentage" => "0",
             //         "inclusive" => false
@@ -261,7 +261,7 @@ class PaypalController extends BaseController
         try {
 
 
-            if (!config('payments.paypal.enable')) {
+            if (! config('payments.paypal.enable')) {
                 return abort(404);
             }
             $currency = config('payments.paypal.currency');
@@ -279,7 +279,7 @@ class PaypalController extends BaseController
 
             //check if product exists
             $productData = config('payments.models.gateway_products')::where(["plan_id" => $planId, "gateway_code" => "paypal", 'mode' => config('payments.paypal.mode')])->first();
-            if (!is_null($productData)) {
+            if (! is_null($productData)) {
                 // Create product in every situation. maybe user updated paypal credentials.
                 if ($productData->product_id != null) { // && $productName != null
                     //Product has been created before
@@ -290,7 +290,7 @@ class PaypalController extends BaseController
 
 
 
-                $data =   json_decode('[
+                $data = json_decode('[
                     {
                       "op": "replace",
                       "path": "/description",
@@ -301,7 +301,7 @@ class PaypalController extends BaseController
                       "path": "/name",
                       "value": ' . $productName . '
                     }
-                  
+
                   ]', true);
 
 
@@ -325,10 +325,10 @@ class PaypalController extends BaseController
             } else {
 
                 $data = [
-                    "name"          => $productName,
-                    "description"   => $productName,
-                    "type"          => "SERVICE",
-                    "category"      => "SOFTWARE",
+                    "name" => $productName,
+                    "description" => $productName,
+                    "type" => "SERVICE",
+                    "category" => "SOFTWARE",
                     // "home_url" => config('app.url'),
                 ];
 
@@ -348,7 +348,7 @@ class PaypalController extends BaseController
             }
 
             //check if price exists
-            if (!is_null($product->price_id)) {
+            if (! is_null($product->price_id)) {
                 //Price exists - here price_id is plan_id in PayPal ( Billing plans id )
 
                 // One-Time price
@@ -411,22 +411,24 @@ class PaypalController extends BaseController
                     $request_id = 'create-plan-' . time();
 
                     $billingPlan = $provider->createPlan($planData, $request_id);
+                    if ($billingPlan && isset($billingPlan['id'])) {
+                        $product->price_id = $billingPlan['id'];
+                        $product->save();
+                        $model = config('payments.models.old_gateway_products');
+                        $history = new $model;
+                        $history->plan_id = $planId;
+                        $history->plan_name = $productName;
+                        $history->gateway_code = 'paypal';
+                        $history->product_id = $product->product_id;
+                        $history->old_product_id = $oldProductId;
+                        $history->old_price_id = $oldBillingPlanId;
+                        $history->new_price_id = $billingPlan['id'];
+                        $history->status = 'check';
+                        $history->save();
 
-                    $product->price_id = $billingPlan['id'];
-                    $product->save();
-                    $model = config('payments.models.old_gateway_products');
-                    $history = new $model;
-                    $history->plan_id = $planId;
-                    $history->plan_name = $productName;
-                    $history->gateway_code = 'paypal';
-                    $history->product_id = $product->product_id;
-                    $history->old_product_id = $oldProductId;
-                    $history->old_price_id = $oldBillingPlanId;
-                    $history->new_price_id = $billingPlan['id'];
-                    $history->status = 'check';
-                    $history->save();
+                        $tmp = self::updateUserData();
+                    }
 
-                    $tmp = self::updateUserData();
                     // to subscribe, first create billing plan. then subscribe with it. so price_id is billing_plan_id
                     // subscribe has different id and logic in paypal
 
@@ -450,7 +452,7 @@ class PaypalController extends BaseController
         try {
 
 
-            if (!config('payments.paypal.enable')) {
+            if (! config('payments.paypal.enable')) {
                 return back()->with(['message' => __('Please enable PayPal'), 'type' => 'error']);
                 abort(404);
             }
@@ -460,7 +462,7 @@ class PaypalController extends BaseController
             $provider = self::getPaypalProvider();
             foreach ($plans as $plan) {
                 // Replaced definitions here. Because if monthly or prepaid words change just updating here will be enough.
-                $freq = $plan->invoice_interval == "monthly" || $plan->invoice_interval ==  'month' ? 'MONTH' : ($plan->invoice_interval == 'day' ? 'DAY' : 'YEAR'); // m => month | y => year
+                $freq = $plan->invoice_interval == "monthly" || $plan->invoice_interval == 'month' ? 'MONTH' : ($plan->invoice_interval == 'day' ? 'DAY' : 'YEAR'); // m => month | y => year
                 // $typ = $plan->type == "prepaid" ? "o" : "s"; // o => one-time | s => subscription
                 $typ = "s"; // o => one-time | s => subscription
                 self::saveProduct($plan->id, $plan->name, $plan->price, $freq, $typ, $provider, $plan->invoice_period, $plan->trial_period);
@@ -482,7 +484,7 @@ class PaypalController extends BaseController
     {
 
 
-        if (!config('payments.paypal.enable')) {
+        if (! config('payments.paypal.enable')) {
             abort(404);
         }
 
@@ -512,7 +514,7 @@ class PaypalController extends BaseController
 
 
 
-    static  public function createPayPalOrder($price)
+    static public function createPayPalOrder($price)
     {
 
         $provider = self::getPaypalProvider();
@@ -520,15 +522,15 @@ class PaypalController extends BaseController
         $data = [
             "intent" => "CAPTURE",
             "purchase_units" =>
-            [
                 [
-                    "amount" =>
                     [
-                        "currency_code" => config('payments.paypal.currency'),
-                        "value" => strval($price)
+                        "amount" =>
+                        [
+                            "currency_code" => config('payments.paypal.currency'),
+                            "value" => strval($price)
+                        ]
                     ]
                 ]
-            ]
         ];
 
         $order = $provider->createOrder($data);
@@ -555,7 +557,7 @@ class PaypalController extends BaseController
                 try {
                     if ($payment->orderable && config('payments.models.plan')) {
                         $plan = config('payments.models.plan')::find($payment->plan_id);
-                        if ($sup =  $payment->orderable->planSubscription('main')) {
+                        if ($sup = $payment->orderable->planSubscription('main')) {
                             $sup->changePlan($plan);
                             $sup->update([
                                 'canceled_at' => null,
@@ -588,7 +590,7 @@ class PaypalController extends BaseController
     public static function subscribe($planId, $plan, $user, $incomingException = null)
     {
 
-        if (!config('payments.paypal.enable')) {
+        if (! config('payments.paypal.enable')) {
             abort(404);
         }
 
@@ -659,11 +661,11 @@ class PaypalController extends BaseController
 
             $plan = config('payments.models.plan')::find($planId);
             $models = config('payments.models.order');
-            if ($models::where('stripe_id',  $paypalSubscriptionID)->exists()) {
+            if ($models::where('stripe_id', $paypalSubscriptionID)->exists()) {
                 return ["result" => "Payment already exists"];
             }
-            $payment =  $models::where('order_id', $orderId)->first();
-            if (!$payment) {
+            $payment = $models::where('order_id', $orderId)->first();
+            if (! $payment) {
                 return ["result" => "Payment not found"];
             }
             $subscription = $provider->showSubscriptionDetails($paypalSubscriptionID);
@@ -680,7 +682,7 @@ class PaypalController extends BaseController
                 if ($user && config('payments.models.plan')) {
                     $plan = config('payments.models.plan')::find($payment->plan_id);
 
-                    if ($sup =  $user->planSubscription('main')) {
+                    if ($sup = $user->planSubscription('main')) {
 
 
                         $sup->changePlan($plan);
@@ -768,7 +770,7 @@ class PaypalController extends BaseController
 
 
         $subscription = $provider->showSubscriptionDetails($order->stripe_id);
-        if (!isset($subscription['error'])) {
+        if (! isset($subscription['error'])) {
             //if user is in trial
             if (isset($subscription['billing_info']['cycle_executions'][0]['tenure_type'])) {
                 if ($subscription['billing_info']['cycle_executions'][0]['tenure_type'] == 'TRIAL') {
@@ -960,7 +962,7 @@ class PaypalController extends BaseController
 
         try {
 
-            if (!config('payments.paypal.enable')) {
+            if (! config('payments.paypal.enable')) {
                 return true;
             }
             if (config('payments.paypal.mode') == 'sandbox') {
@@ -1082,8 +1084,8 @@ class PaypalController extends BaseController
             $url = url('/') . '/api/webhooks/paypal';
 
             $events = [
-                'PAYMENT.SALE.COMPLETED',           // A payment is made on a subscription.
-                'BILLING.SUBSCRIPTION.CANCELLED'   // A subscription is cancelled.
+                'PAYMENT.SALE.COMPLETED', // A payment is made on a subscription.
+                'BILLING.SUBSCRIPTION.CANCELLED' // A subscription is cancelled.
             ];
             // 'BILLING.SUBSCRIPTION.EXPIRED',     // A subscription expires.
             // 'BILLING.SUBSCRIPTION.SUSPENDED'    // A subscription is suspended.
